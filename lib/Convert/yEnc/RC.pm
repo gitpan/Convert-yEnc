@@ -428,8 +428,7 @@ Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002 by Steven W McDougall
-
+Copyright (c) 2002-2004 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 

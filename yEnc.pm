@@ -6,7 +6,7 @@ use Convert::yEnc::Decoder;
 use Convert::yEnc::RC;
 use warnings;
 
-our $VERSION = '1.01';
+our $VERSION = '1.02';
 
 
 sub new
@@ -87,7 +87,7 @@ sub _complete
     my $tmpFile = "$tmpDir/$name";
     my $outFile = $yEnc->mkpath($outDir, $name);
 
-    if ($tmpFile eq $outFile)
+    if (defined $outFile and $outFile eq $tmpFile)
     {
 	# all done
     }
@@ -142,14 +142,14 @@ Convert::yEnc - yEnc decoder
         $yEnc->tmp_dir($dir);
   
   $ok = $yEnc->decode(\*FILE);
-  $ok = $yEnc->decode($file);
+  $ok = $yEnc->decode( $file);
   
   $decoder = $yEnc->decoder;
   $rc      = $yEnc->RC;
   
   undef $yEnc;   # saves the Convert::yEnc::RC database to disk
   
-  package My_yEnc;
+  package My::Decoder;
   use base qw(Convert::yEnc);
   sub mkpath
   {
@@ -343,9 +343,6 @@ Steven W McDougall, <swmcd@world.std.com>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002-2003 by Steven W McDougall
-
+Copyright (c) 2002-2004 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
-
-

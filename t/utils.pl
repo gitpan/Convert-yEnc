@@ -6,7 +6,7 @@ http://www.yenc.org/yEnc-draft-1.txt says
 
 BUT...no matter what the encoder does, 
 the yEncoded data is then transported by NNTP,
-and appears appears at its destination with native line endings.
+and appears at its destination with native line endings.
 
 Therefore, C<chomp>ing the line ending in Decoder::_body is the Right Thing.
 In order to test this, we need a test file with native line endings.

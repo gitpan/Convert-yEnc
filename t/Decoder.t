@@ -14,6 +14,7 @@ BEGIN { use_ok('Convert::yEnc::Decoder') };
 
 use strict;
 use warnings;
+use Config;
 use IO::File;
 require "t/utils.pl";
 
@@ -83,7 +84,7 @@ sub DecodeSTDIN
     my $exp = "$NTX/testfile.exp";
 
     unlink $out;
-    system "cat $in | perl $Dir/decoder.pl $Dir";
+    system "cat $in | $Config{perlpath} $Dir/decoder.pl $Dir";
 
     ok(CmpFiles($out, $exp), "DeocdeSTDIN: cmp $out $exp");
 }

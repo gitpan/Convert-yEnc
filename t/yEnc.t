@@ -7,7 +7,7 @@
 
 # change 'tests => 1' to 'tests => last_test_to_print';
 
-use Test::More tests => 1 + 2*2 + 3 + 8;
+use Test::More tests => 1 + 2*2 + 3 + 8 + 2;
 BEGIN { use_ok('Convert::yEnc') };
 
 #########################
@@ -24,6 +24,7 @@ my $NL  = whats_my_line();
 Decodes();
 Error  ();
 RC     ();
+Drop   ();
 
 
 sub Decodes
@@ -114,4 +115,31 @@ sub RC
     my @tmp = grep { not m(^\.) } readdir(TMP);
     closedir TMP;
     is(@tmp, 0, "No temp files leftover");
+}
+
+
+package BitBucket;
+
+use base qw(Convert::yEnc);
+
+sub mkpath { undef }
+
+
+package main;
+
+sub Drop
+{
+    my $in = "$NTX/00000005.$NL";
+    my $rc = "$Dir/yencrc";
+    unlink $rc;
+
+    my $yEnc = new BitBucket RC  => $rc,
+                             out => $Dir;
+
+    my $out = "$Dir/testfile.txt";
+
+    unlink $out;
+    my $ok = $yEnc->decode($in);
+    ok($ok, "decode($in)");
+    ok(not(defined(-e($out))), "Discard output file");
 }

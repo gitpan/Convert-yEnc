@@ -86,8 +86,8 @@ sub complete
 sub to_string
 {
     my $entry = shift;
-    my $size  = $entry->{size};
-    my $bytes = $entry->{bytes};
+    my $size  = $entry->{size}  || 0;
+    my $bytes = $entry->{bytes} || 0;
 
     "$size\t$bytes"
 }
@@ -168,7 +168,7 @@ sub yend
     defined $pSize or return 0;
 
     my $part = $fields->{part};
-    $part ==$entry->{part} or return 0;
+    $part == $entry->{part} or return 0;
 
     $entry->{parts}->insert($part);
 
@@ -346,9 +346,6 @@ Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002 by Steven W McDougall
-
+Copyright (c) 2002 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
-
-

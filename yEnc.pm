@@ -29,7 +29,7 @@ require Exporter;
 
 );
 
-$VERSION = '0.03';
+$VERSION = '0.04_01';
 
 $Linelength = 64;  # default, can be changed
 $Blocksize  = 200; # input buffer size
@@ -293,6 +293,20 @@ Convert::yEnc - Encode and decode using the yEnc method
 
   # yDecode data -- NOTE: not yet implemented!
   ydecode();
+
+=head1 DO NOT USE THIS DISTRIBUTION!
+
+This code is not ready yet. It does not have any tests yet. It
+undoubtedly has bugs. It's not intended to be the standard yEnc-in-Perl
+implementation.
+
+It's provided only so you can have a look at it, really. If it's useful
+to you, so much the better. If you can make it work, then more power to
+you (and "patches welcome"). If you want to create your own
+Convert::yEnc, you're more than welcome to do so -- you can even include
+code from this, if you want.
+
+I don't know when I'll get around to making it work properly.
 
 =head1 DESCRIPTION
 

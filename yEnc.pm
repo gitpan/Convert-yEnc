@@ -1,385 +1,314 @@
+use 5.008;
+use strict;
+use IO::File;
+use Convert::yEnc::Decoder;
+use Convert::yEnc::RC;
+
 package Convert::yEnc;
 
-require 5.005;
-use strict;
-use warnings;
-use vars qw(@ISA $VERSION @EXPORT @EXPORT_OK %EXPORT_TAGS
-            $DEBUG $Linelength $Blocksize);
-use String::CRC32;
-use Carp;
-
-require Exporter;
-
-@ISA = qw(Exporter);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration	use Convert::yEnc ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
-%EXPORT_TAGS = ( 'all' => [ qw(
-  yencode ydecode
-) ] );
-
-@EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
-
-@EXPORT = qw(
-
-);
-
-$VERSION = '0.04_01';
-
-$Linelength = 64;  # default, can be changed
-$Blocksize  = 200; # input buffer size
+our $VERSION = '1.00';
 
 
-# Preloaded methods go here.
+sub new
+{
+    my($package, %params) = @_;
+
+    my $rcFile 	= $params{RC } || "$ENV{HOME}/.yencrc";
+    my $outDir 	= $params{out} || '.';
+    my $tmpDir 	= $params{tmp} || $outDir;
+    my $RC     	= new Convert::yEnc::RC $rcFile;
+    my $decoder = new Convert::yEnc::Decoder;
+
+    my $yEnc = { rcFile  => $rcFile,
+		 RC      => $RC,
+		 out     => $outDir,
+		 tmp     => $tmpDir,
+		 decoder => $decoder   };
+
+    bless $yEnc, $package
+}
 
 
-my %esc = ( chr(0)  => chr( 0+64), chr(9) => chr(9+64), chr(10) => chr(10+64), chr(13) => chr(13+64),
-            chr(27) => chr(27+64), '=' => chr(ord('=')+64), '.' => chr(ord('.')+64) );
+sub out_dir
+{
+    my($yEnc, $dir) = @_;
+    $yEnc->{out} = $dir;
+}
 
-my $esc = qr/([@{[join '', keys %esc]}])/;
+sub tmp_dir
+{
+    my($yEnc, $dir) = @_;
+    $yEnc->{tmp} = $dir;
+}
 
-sub yencode {
-  my($dest, $filename, $src, $filelen,
-     $part, $lastpart,
-     $fulllen, $pend, $partcrc) = @_;
 
-  if($part == 0) {
-    # Single part
-    print $dest "=ybegin line=$Linelength size=$filelen name=$filename\r\n";
-  } else {
-    # Multipart
-    $pend = 0 unless defined $pend;
-    my $pbegin = $pend + 1;
-    $pend = $pend + $filelen;
+sub decode
+{
+    my($yEnc, $in) = @_;
 
-    print $dest "=ybegin part=$part line=$Linelength size=$fulllen name=$filename\r\n";
-    print $dest "=ypart begin=$pbegin end=$pend\r\n";
-  }
+    my $tmpDir  = $yEnc->{tmp};
+    my $decoder = $yEnc->{decoder};
+    $decoder->out_dir($tmpDir);
 
-  my $crc     = 0xFFFFFF;
-  my $fullcrc = $partcrc || 0xFFFFFF;
+    eval
+    {
+	$decoder->decode($in);
 
-  # This will break if '==' is a valid sequence -- Ctrl-ý?
-  my $rex = qr/^(.{1,@{[$Linelength - 1]}}(?:[^=]|=.))/s;
-  my $line;
+	my $rc = $yEnc->{RC};
 
-  my $text = '';
-  my $newtext;
-  my $outtext = '';
+	for my $tag (qw(ybegin ypart yend))
+	{
+	    my $line = $decoder->$tag;
+	       $line or next;
 
-  while(read($src, $newtext, $Blocksize)) {
-    $crc     = crc32($newtext, $crc);
-    $fullcrc = crc32($newtext, $fullcrc);
+	    $rc->update($line) or 
+		die ref $yEnc, ": bad =$tag line: $line\n";
+	}
 
-    $newtext =~ tr[\x00-\xd5\xd6-\xff]
-                  [\x2a-\xff\x00-\x29];
+	my $name = $decoder->name;
+	$rc->complete($name) and
+	    $yEnc->_complete($name);
+    };
 
-    $newtext =~ s/$esc/=$esc{$1}/g;
+    my $err = $@;
+    my $ok  = $err ? 0 : 1;
+    wantarray ? ($ok, $err) : $ok;
+}
 
-    $text .= $newtext;
+sub _complete
+{
+    my($yEnc, $name) = @_;
 
-    while(length($text) >= $Linelength) {
-      $text =~ s/$rex//s and print $dest "$1\r\n";
+    my $tmpDir  = $yEnc->{tmp};
+    my $outDir  = $yEnc->{out};
+    $tmpDir eq $outDir and return;
+
+    my $tmpFile = "$tmpDir/$name";
+    my $outFile = $yEnc->mkpath($outDir, $name);
+
+    if (defined $outFile)
+    {
+	rename $tmpFile, $outFile or
+	    die ref $yEnc, ": Can't rename $tmpFile -> $outFile: $!\n";
+    }
+    else
+    {
+	unlink $tmpFile;
     }
 
-  }
+    $yEnc->{RC}->drop($name);
+}
 
-  print $dest "$text\r\n" if length $text;
-
-  if($part == 0) {
-    # single part
-    printf $dest "=yend size=%d crc32=%08x \r\n",
-                 $filelen, ($crc ^ 0xFFFFFFFF);
-  } elsif($part == $lastpart) {
-    printf $dest "=yend size=%d part=%d pcrc32=%08x crc32=%08x \r\n",
-                 $filelen, $part, ($crc ^ 0xFFFFFFFF), ($fullcrc ^ 0xFFFFFFFF);
-  } else {
-    # multi-part
-    printf $dest "=yend size=%d part=%d pcrc32=%08x \r\n",
-                 $filelen, $part, ($crc ^ 0xFFFFFFFF);
-  }
-
-  return wantarray ? ($outtext, $pend, $crc) : ($outtext);
+sub mkpath
+{
+    my($yEnc, $dir, $name) = @_;
+    "$dir/$name"
 }
 
 
-sub ydecode {
-  my($src) = @_;
-
-  my $in_msg = 0;
-  my $eof = 0;
-
-  my $numbytes = 0;
-
-  my($part, $pbegin, $pend, $filesize, $filename, $linelen);
-  my $crc     = 0xFFFFFFFF;
-  my $fullcrc = 0xFFFFFFFF;
-
-  # these are the values read from the =yend line
-  my $filecrc;
-  my $filefullcrc;
-  my $filelen;
-
-  local $/ = "\x0d\x0a";  # read in by CRLF-terminated lines
-
-  while(<$src>) {
-    chomp; # remove CRLF
-
-    if(/^=ybegin/ && !$in_msg) {
-      $in_msg = 1;
-
-      # extract information from the start line
-      if(/part=(\d+)/) {
-        $part = $1;
-      }
-
-      if(/line=(\d+)/) {
-        $linelen = $1;
-      } else {
-        croak "Line length not found in message";
-      }
-
-      if(/size=(\d+)/) {
-        $filesize = $1;
-      } else {
-        croak "File size not found in message";
-      }
-
-      if(/name=(.*)/) {
-        $filename = $1;
-
-        open DEST, '>$filename' or croak "Can't open '$filename': $!";
-      } else {
-        croak "Filename not found in message";
-      }
+sub decoder { shift->{decoder} }
+sub RC      { shift->{RC     } }
 
 
-      # multipart message?
-      if(defined $part) {
-        local $_ = <$src>;
-        chomp;
-
-        if(!/^=ypart/) {
-          croak "Error: part $part does not start with =ypart";
-        } else {
-          if(/begin=(\d+)/) {
-            $pbegin = $1;
-          } else {
-            croak "missing begin= in part $part";
-          }
-
-          if(/end=(\d+)/) {
-            $pend = $1;
-          } else {
-            croak "missing end= in part $part";
-          }
-        }
-      } # multipart message?
-
-      # skip to next line
-      next;
-    } # =ybegin seen
-
-    # skip to the start of the message.
-    next unless $in_msg;
-
-    if(/^=yend/) {
-      $eof = 1; # set eof marker
-
-      if(defined $part) {
-        # multipart
-        my $thispart;
-
-        if(/part=(\d+)/) {
-          $thispart = $1;
-        } else {
-          croak "part= not found in yend line of part $part";
-        }
-
-        if($part != $thispart) {
-          croak "part= in yend line ($thispart) disagrees with part in start line ($part)";
-        }
-
-        if(/pcrc32=([0-9a-fA-F]{8})/) {
-          $filecrc = hex $1;
-
-          if($filecrc ^ 0xFFFFFFFF != $crc) {
-            croak sprintf "part CRC does not match: %08x calculated vs %08x in file",
-                          ($crc ^ 0xFFFFFFFF), $filecrc;
-          }
-        }
-      } # multipart?
-
-      if(/\bcrc32=([0-9a-fA-F]{8})/) {
-        $filefullcrc = hex $1;
-
-        if($filefullcrc ^ 0xFFFFFFFF != $fullcrc) {
-          croak sprintf "full CRC does not match: %08x calculated vs %08x in file",
-                        ($fullcrc ^ 0xFFFFFFFF), $filefullcrc;
-        }
-      }
-
-      if(/size=(\d+)/) {
-        $filesize = $1;
-
-        if($filesize != $numbytes) {
-          # TODO!
-          croak "filesize $filesize does not equal number of bytes in this part $numbytes";
-        }
-
-        # TODO: handle multipart size calculations; check
-        # whole size at end of file;
-        # search for multipart messages
-      }
-
-      last;
-    } # =yend line seen?
-
-    # process a normal line
-
-    # de-escape
-    s/=(.)/chr((ord($1)+256-64) % 256)/eg;
-
-    # undo the skew
-    tr[\x00-\x29\x2a-\xff]
-      [\xd6-\xff\x00-\xd5];
-
-    $crc     = crc32($_, $crc);
-    $fullcrc = crc32($_, $fullcrc);
-
-    $numbytes += length;
-
-    print DEST;
-  } # while <$src>
-
-  # did we exit the loop normally?
-  unless($eof) {
-    croak "Error: unexpected EOF in message";
-  }
-
-  close DEST or die "Can't close '$filename': $!";
-
-  1;
+sub DESTROY
+{
+    my $yEnc = shift;
+    my $RC   = $yEnc->{RC};
+    defined $RC and $RC->save;
 }
 
 
-# for possible future use
-sub ydecode_part {
-  1;
-}
+1
 
-
-
-
-1;
 __END__
-# Below is stub documentation for your module. You better edit it!
+
 
 =head1 NAME
 
-Convert::yEnc - Encode and decode using the yEnc method
+Convert::yEnc - yEnc decoder
 
 =head1 SYNOPSIS
 
-  use Convert::yEnc qw(yencode ydecode);
+  use Convert::yEnc;
+  
+  $yEnc = new Convert::yEnc RC  => $rcFile,
+                            out => $outDir, 
+                            tmp => $tmpDir;
+  
+        $yEnc->out_dir($dir);
+        $yEnc->tmp_dir($dir);
+  
+  $ok = $yEnc->decode(\*FILE);
+  $ok = $yEnc->decode($file);
+  
+  $decoder = $yEnc->decoder;
+  $rc      = $yEnc->RC;
+  
+  undef $yEnc;   # saves the Convert::yEnc::RC database to disk
+  
+  package My_yEnc;
+  use base qw(Convert::yEnc);
+  sub mkpath
+  {
+      my($yEnc, $dir, $name) = @_;
+      "$dir/$name"
+  }
 
-  # yEncode data
-  yencode();
 
-  # yDecode data -- NOTE: not yet implemented!
-  ydecode();
+=head1 ABSTRACT
 
-=head1 DO NOT USE THIS DISTRIBUTION!
+yEnc decoder, with database of file parts
 
-This code is not ready yet. It does not have any tests yet. It
-undoubtedly has bugs. It's not intended to be the standard yEnc-in-Perl
-implementation.
-
-It's provided only so you can have a look at it, really. If it's useful
-to you, so much the better. If you can make it work, then more power to
-you (and "patches welcome"). If you want to create your own
-Convert::yEnc, you're more than welcome to do so -- you can even include
-code from this, if you want.
-
-I don't know when I'll get around to making it work properly.
 
 =head1 DESCRIPTION
 
-yEnc is an encoding method devised by JE<uuml>rgen Helbing and intended
-to be
-suitable for sending data via NNTP, where the datapath is nearly
-eight-bit-clean but some characters are special. It avoids the overhead
-involved with "readable" encodings such as MIME Base64 or uuencoding by
-only escaping a small number of bytes, thus resulting in an overhead of
-about 1-2% for large files.
+C<Convert::yEnc> decodes yEncoded files and writes them to disk. File
+parts are saved to I<$tmpDir>; when all parts of a file have been
+received, the completed file is moved to I<$outDir>.
 
-=head2 EXPORT
-
-None by default.
-
-The subroutines C<yencode> and C<ydecode> are exported if you ask for
-them explicitly.
-
-=head2 yencode
-
-This subroutine enables you to yEncode data so that it is suitable for
-sending via NNTP.
-
-=head2 ydecode
-
-This is not yet implemented. When it is, it will enable you to decode
-yEncoded data.
+C<Convert::yEnc> maintains a database of partially received files, called
+the RC database. The RC database is loaded from disk when a
+C<Convert::yEnc> object is created, and saved to disk when the object is
+C<DESTROY>'d.
 
 
-=head1 AUTHOR
+=head2 Exports
 
-Philip Newton, E<lt>pne@cpan.orgE<gt>
+Nothing.
 
-=head1 BUGS
+
+=head2 Methods
 
 =over 4
 
-=item *
+=item I<$yEnc> = C<new> C<Convert::yEnc> C<RC> => I<$rcFile>,
+C<out> => I<$outDir>, C<tmp> => I<$tmpDir>
 
-Decoding is not implemented yet.
+Creates and returns a new C<Convert::yEnc> object.
+I<$rcFile> contains the RC database.
+I<$outDir> is the output directory,
+and I<$tmpDir> is the temporary directory,
 
-=item *
+If the C<RC> parameter is omitted, 
+it defaults to F<$HOME{ENV}/.yencrc>.
+If the C<out> parameter is omitted, 
+it defaults to the current working directory.
+If the C<tmp> parameter is omitted, 
+it defaults to the C<out> parameter.
 
-Multipart files are not yet supported
+
+=item I<$yEnc>->C<out_dir>(I<$dir>)
+
+Sets the output directory to I<$dir>
+
+
+=item I<$yEnc>->C<tmp_dir>(I<$dir>)
+
+Sets the temporary directory to I<$dir>
+
+
+=item I<$ok> = I<$yEnc>->C<decode>(I<$file>)
+
+=item I<$ok> = I<$yEnc>->C<decode>(I<\*FILE>)
+
+Decodes a yEncoded file and writes it to the C<tmp> directory.
+If the file is complete, 
+moves it to the C<out> directory
+and drops the entry for the file from the RC database.
+
+The first form reads the file named I<$file>.
+The second form reads the file handle I<FILE>.
+
+In scalar context, returns true on success. 
+In list context, returns
+
+    ($ok, $err)
+
+where I<$ok> is true on success,
+and I<$err> is an error message.
+
+
+=item I<$rc> = I<$yEnc>->C<RC>
+
+Returns the C<Convert::yEnc::RC> object that holds the RC database for I<$yEnc>.
+Applications can use the returned value to query or manipulate 
+the RC database directly.
+
+
+=item C<DESTROY>
+
+C<Convert::yEnc::RC> has a destructor.
+The destructor writes the RC database 
+back to the file from which it was loaded.
 
 =back
 
-=head1 CAUTION
 
-Beware: this module is still alpha, and especially the interface. The
-interface can, and most probably will, change, so check the documentation
-when you upgrade.
+=head2 Overrides
 
-For example, I'm not sure how best to do data passing into and out of the
-function -- mandate passing filehandles? pass in a string and return a
-string? use callbacks for reading and/or writing? accept multiple
-possibilities?
+=over 4
 
-Also, I'm not sure what the best way to handle multipart files is. Right
-now, the caller has to do a fair amount of bookkeeping; I wonder whether
-it might be a good idea to provide a subroutine which would keep track of
-things like that itself, and perhaps be passed a number of parts to split
-into, or a maximum length per part, and deduce the other parameter
-automatically and call C<yencode> with the appropriate parameters.
+=item C<mkpath>
 
-Or maybe encapsulate the whole thing inside a stateful object which
-remembers which parts were already written and at what byte offsets?
+C<Convert::yEnc> calls C<mkpath> to construct the path to which a 
+completed file is moved.
+The default implementation of C<mkpath> is shown in the L</SYNOPSIS>.
 
-Decoding multipart messages where some are missing is also likely to be
-"interesting".
+Applications can subclass from C<Convert::yEnc> and override this method if they want
+the completed file to appear somewhere else.
 
-At the moment, the interface is filehandle-oriented, like the sample C
-code it is derived from. Suggestions for improvements are welcome.
+If C<mkpath> returns C<undef>, the completed file is discarded.
+
+
+=back
+
+
+=head1 NOTES
+
+=head2 Destructors don't work reliably at global destruct time
+
+C<Convert::yEnc> provides a C<DESTROY> method as a convenience:
+you can create a C<yEnc> object, use it, forget about it
+
+    my $yEnc = new Convert::yEnc;
+       $yEnc->decode(...);
+
+and the RC file will automatically be written when the object 
+ref count goes to zero.
+
+Unless the ref count never goes to zero, because,  for example, 
+a named closure is holding a reference on the object
+
+    sub A { $yEnc }
+
+In this case, the object won't be destructed until global destruct time.
+Unfortunately, the order in which objects are destructed during
+global destruction isn't controlled, and if the embedded
+C<< $yEnc->RC >> object is destructed before C<$yEnc> itself,
+then C<< $yEnc->DESTROY >> won't be able to write the RC file.
+
+To avoid creating closures, pass C<yEnc> objects as parameters
+
+    my $yEnc = new Convert::yEnc;
+    
+    A($yEnc);
+    
+    sub A { my $yEnc = shift }
+
+rather than referencing them as globals. To pass a C<yEnc> object to
+a C<File::Find> I<wanted> routine, use an anonymous closure
+
+    File::Find::find(sub { A($yEnc) }, $dir)
+
+It isn't always obvious when a closure is created;
+if you're feeling paranoid, write
+
+    $yEnc->RC->save
+
+to save the RC file.
+
+This problem is reported as bug 7853 at L<http://www.perl.org>.
+
 
 =head1 TODO
 
@@ -387,42 +316,65 @@ code it is derived from. Suggestions for improvements are welcome.
 
 =item *
 
-Implement multi-part files
+Encoding
 
 =item *
 
-Implement ydecoding
-
-=item *
-
-Support different ways of presenting data in and out -- filehandle,
-string data, arrayrefs, ...
-
-=item *
-
-What if the string C<=yend> appears in the middle of data on decoding?
-Probably need
-to do checking on C<$filelen> and/or C<begin=> and C<end=> values.
-Checking whether the length of the current line is less than the declared
-line length gets us part of the way, but if the last line happens to be
-the right length, it doesn't give us any warning. Counting bytes may
-be safer.
-
-=item *
-
-Write tests!
+CRCs
 
 =back
 
-=head1 FEEDBACK
 
-If you use this module, I'd appreciate it if you dropped me a note so
-I can see whether anyone uses it at all. Also, if you have any suggestions
-for improvements (especially if you wish to submit a code patch), feel free
-to send me email.
+=head1 HISTORY
+
+=over 8
+
+=item 1.00
+
+Original version; created by h2xs 1.22 with options
+
+	-A
+	-C
+	-X
+	-n
+	Convert::yEnc
+
+=back
+
 
 =head1 SEE ALSO
 
-perl(1), L<Convert::UU>.
+=over 4
 
-=cut
+=item *
+
+L<Convert::yEnc::RC>
+
+=item *
+
+L<Convert::yEnc::Decoder>
+
+=item *
+
+L<http://www.yenc.org>
+
+=item *
+
+L<http://www.yenc.org/yenc-draft.1.3.txt>
+
+=back
+
+
+=head1 AUTHOR
+
+Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
+
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2002 by Steven W McDougall
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
+

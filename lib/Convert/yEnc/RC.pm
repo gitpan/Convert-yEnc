@@ -1,8 +1,8 @@
-use 5.008;
+package Convert::yEnc::RC;
+
 use strict;
 use Convert::yEnc::Entry;
-
-package Convert::yEnc::RC;
+use warnings;
 
 use overload 'eq' => \&_eq;
 
@@ -14,7 +14,6 @@ sub new
     my $rc = { };
     bless $rc, $class;
     $rc->load($file) if $file;
-    $rc->{file}, "\n";
 
     $rc
 }
@@ -26,7 +25,8 @@ sub load
     
     $rc->{file } = $file;
     $rc->{db   } = { };
-    
+
+    no warnings qw(uninitialized);
     open RC, $file or return undef;
 
     while (my $line = <RC>)
@@ -55,8 +55,8 @@ sub update
 	$field{$key} = $val;
     }
 
-    my($name) = $line =~ /name=(.*)/;  # Die! Die! Die!
-    $name =~ s/^\s+|\s+$//g;
+    $line =~ s(\s+$)();
+    my($name) = $line =~ /name=\s*(.*)/;  # Die! Die! Die!
     $field{name} = $name if $name;
 
     $tag =~ s/^=/_/;

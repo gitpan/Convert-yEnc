@@ -13,6 +13,7 @@ BEGIN { use_ok('Convert::yEnc::Entry') };
 #########################
 
 use strict;
+use warnings;
 
 my $undef = new Convert::yEnc::Entry;
 is($undef, undef, "new w/bad args");

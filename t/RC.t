@@ -13,6 +13,7 @@ BEGIN { use_ok('Convert::yEnc::RC') };
 #########################
 
 use strict;
+use warnings;
 
 my $Dir = "t/RC.d";
 
@@ -99,7 +100,7 @@ sub Multiple
     ok(eq_set(\@complete, [qw(a.jpg)]), "1 complete");
 
 
-    my $ok = $rc->update("=ybegin size=10000 part=2 name=b.jpg");
+    $ok = $rc->update("=ybegin size=10000 part=2 name=b.jpg");
     ok($ok, "update =ybegin");
 
     $ok = $rc->update("=ypart begin=5001 end=10000");
@@ -108,13 +109,13 @@ sub Multiple
     $ok = $rc->update("=yend size=5000 part=2");
     ok($ok, "update =yend");
     
-    my $complete = $rc->complete("b.jpg");
+    $complete = $rc->complete("b.jpg");
     ok($complete, "b.jpg complete");
 
-    my @files = $rc->files;
+    @files = $rc->files;
     ok(eq_set(\@files, [qw(a.jpg b.jpg)]), "2 files");
 
-    my @complete = $rc->complete;
+    @complete = $rc->complete;
     ok(eq_set(\@complete, [qw(a.jpg b.jpg)]), "2 complete");
 }
 
@@ -172,8 +173,8 @@ sub Load
     is($ok, undef, "Load: empty");
 
     my $loadrc = "$Dir/loadrc";
-    my $rc = new Convert::yEnc::RC;
-    my $ok = $rc->load($loadrc);
+    $rc = new Convert::yEnc::RC;
+    $ok = $rc->load($loadrc);
     ok($Gold eq $rc, "Load: load");
 }
 

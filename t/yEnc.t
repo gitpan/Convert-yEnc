@@ -7,12 +7,13 @@
 
 # change 'tests => 1' to 'tests => last_test_to_print';
 
-use Test::More tests => 1 + 2*2 + 3 + 7;
+use Test::More tests => 1 + 2*2 + 3 + 8;
 BEGIN { use_ok('Convert::yEnc') };
 
 #########################
 
 use strict;
+use warnings;
 use Convert::yEnc::RC;
 require "t/utils.pl";
 
@@ -59,7 +60,8 @@ sub Error
     my $ok   = $yEnc->decode("no_such_file");
     isnt($ok, 1, "Error: ok");
 
-    my($ok, $err) = $yEnc->decode("no_such_file");
+    my $err;
+    ($ok, $err) = $yEnc->decode("no_such_file");
     isnt($ok ,  1, "Error: ok" );
     isnt($err, "", "Error: err");
 }
@@ -77,10 +79,10 @@ sub RC
 
     {
 	my $yEnc = new Convert::yEnc RC  => $rc, 
-	                             out => $out;
-	                             out => $tmp;
+	                             out => $out,
+	                             tmp => $tmp;
 
-	for my $n (qw(05 20 21))
+	for my $n (qw(05 20))
 	{	       
 	    my $ok = $yEnc->decode("$NTX/000000$n.$NL");
 	    ok($ok, "RC: 000000$n");
@@ -89,12 +91,23 @@ sub RC
 
     ok(CmpFiles($rc, "$Dir/ntxrc"), "RC");
 
+    {
+	my $yEnc = new Convert::yEnc RC  => $rc, 
+	                             out => $out,
+	                             tmp => $tmp;
+
+	my $ok = $yEnc->decode("$NTX/00000021.$NL");
+	ok($ok, "RC: 00000021");
+    }
+
+    ok(-z $rc, "RC is empty");
+
     my $act = "$out/testfile.txt";
     my $exp = "$NTX/testfile.exp";
     ok(CmpFiles($act, $exp), "DecodeFile: cmp $act $exp");
 
-    my $act = "$out/joystick.jpg";
-    my $exp = "$NTX/joystick.exp";
+       $act = "$out/joystick.jpg";
+       $exp = "$NTX/joystick.exp";
     ok(CmpFiles($act, $exp), "DecodeFile: cmp $act $exp");
 
     opendir TMP, $tmp or die "Can't opendir $tmp: $!\n";

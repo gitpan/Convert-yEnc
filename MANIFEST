@@ -1,6 +1,8 @@
+Changes
 MANIFEST
 Makefile.PL
 README
+ToDo
 lib/Convert/yEnc/Decoder.pm
 lib/Convert/yEnc/Entry.pm
 lib/Convert/yEnc/RC.pm

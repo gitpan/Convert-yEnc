@@ -1,12 +1,12 @@
-use 5.008;
+package Convert::yEnc;
+
 use strict;
 use IO::File;
 use Convert::yEnc::Decoder;
 use Convert::yEnc::RC;
+use warnings;
 
-package Convert::yEnc;
-
-our $VERSION = '1.00';
+our $VERSION = '1.01';
 
 
 sub new
@@ -79,14 +79,19 @@ sub _complete
 {
     my($yEnc, $name) = @_;
 
+    $yEnc->{RC}->drop($name);
+
     my $tmpDir  = $yEnc->{tmp};
     my $outDir  = $yEnc->{out};
-    $tmpDir eq $outDir and return;
 
     my $tmpFile = "$tmpDir/$name";
     my $outFile = $yEnc->mkpath($outDir, $name);
 
-    if (defined $outFile)
+    if ($tmpFile eq $outFile)
+    {
+	# all done
+    }
+    elsif (defined $outFile)
     {
 	rename $tmpFile, $outFile or
 	    die ref $yEnc, ": Can't rename $tmpFile -> $outFile: $!\n";
@@ -95,8 +100,6 @@ sub _complete
     {
 	unlink $tmpFile;
     }
-
-    $yEnc->{RC}->drop($name);
 }
 
 sub mkpath
@@ -310,38 +313,6 @@ to save the RC file.
 This problem is reported as bug 7853 at L<http://www.perl.org>.
 
 
-=head1 TODO
-
-=over 4
-
-=item *
-
-Encoding
-
-=item *
-
-CRCs
-
-=back
-
-
-=head1 HISTORY
-
-=over 8
-
-=item 1.00
-
-Original version; created by h2xs 1.22 with options
-
-	-A
-	-C
-	-X
-	-n
-	Convert::yEnc
-
-=back
-
-
 =head1 SEE ALSO
 
 =over 4
@@ -367,12 +338,12 @@ L<http://www.yenc.org/yenc-draft.1.3.txt>
 
 =head1 AUTHOR
 
-Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
+Steven W McDougall, <swmcd@world.std.com>
 
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 2002 by Steven W McDougall
+Copyright 2002-2003 by Steven W McDougall
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

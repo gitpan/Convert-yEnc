@@ -13,6 +13,7 @@ BEGIN { use_ok('Convert::yEnc::Decoder') };
 #########################
 
 use strict;
+use warnings;
 use IO::File;
 require "t/utils.pl";
 

@@ -1,9 +1,8 @@
-use 5.008;
+package Convert::yEnc::Entry;
+
 use strict;
 use Set::IntSpan;
-
-
-package Convert::yEnc::Entry;
+use warnings;
 
 sub new
 {
@@ -95,6 +94,8 @@ sub to_string
 
 sub _eq
 {
+    no warnings qw(uninitialized);
+
     my($a, $b) = $_;
 
     $a->{size }==$b->{size } and

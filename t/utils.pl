@@ -28,9 +28,9 @@ sub whats_my_line
 
     for ($nl)
     {
+	/\r\n/ and return 'crlf';
 	/\n/   and return 'lf';
 	/\r/   and return 'cr';
-	/\r\n/ and return 'crlf';
     }
 
     my @nl = map { ord } split //, $nl;

@@ -1,8 +1,8 @@
-use 5.008;
+package Convert::yEnc::Decoder;
+
 use strict;
 use IO::File;
-
-package Convert::yEnc::Decoder;
+use warnings;
 
 use constant yEncBrainDamage => 1;
 
@@ -85,7 +85,7 @@ sub _out
     my $temp    = $decoder->{temp};
     my $name 	= $temp->{begin}{name};
     my $file 	= "$dir/$name";
-    my $mode    = main::O_CREAT | main::O_WRONLY;
+    my $mode    = O_CREAT | O_WRONLY;
     my $OUT  	= new IO::File $file, $mode or	
 	die ref $decoder, "::_out: Can't open $file: $!\n";
     
@@ -137,16 +137,21 @@ sub _body
     {
 	$line =~ /^=yend/ and last;
 	chomp $line;
-	
-	$line =~ s/=(.)/chr((ord($1)+(256-64)) & 255)/ge;
 
-	my @line = split //, $line;
-	for (@line) { $_ = chr(ord($_)+(256-42) & 255) }
-	print $OUT @line;
+	$decoder->_line($line);
+
+	print $OUT $line;
     }
 
     close $OUT;
     $temp->{line}{yend} = $line;
+}
+
+sub _line
+{
+    $_[1] =~ s/=(.)/chr(ord($1)+256-64 & 255)/egosx;
+    $_[1] =~ tr[\000-\377][\326-\377\000-\325];
+    
 }
 
 sub _end

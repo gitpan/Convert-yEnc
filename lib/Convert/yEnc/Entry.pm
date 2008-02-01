@@ -192,7 +192,8 @@ sub ybegin
     $fields->{size}==$entry->{fSize} or return 0;
 
     my $total = $fields->{total};
-    defined $total and $total != $entry->{total} and return 0;
+    defined $total and defined $entry->{total} and $total != $entry->{total} and 
+	return 0;
     
     my $part  = $fields->{part};
     defined $part or return 0;
@@ -322,18 +323,6 @@ Serializes a C<Convert::yEnc::Entry> object for storage in an RC database.
 =back
 
 
-=head1 HISTORY
-
-=over 8
-
-=item 1.00
-
-Original version.
-
-=back
-
-
-
 =head1 SEE ALSO
 
 L<Convert::yEnc::RC>
@@ -346,6 +335,6 @@ Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2002 by Steven McDougall.
+Copyright (c) 2002-2008 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

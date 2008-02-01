@@ -7,7 +7,7 @@
 
 # change 'tests => 1' to 'tests => last_test_to_print';
 
-use Test::More tests => 34;
+use Test::More tests => 37;
 BEGIN { use_ok('Convert::yEnc::RC') };
 
 #########################
@@ -38,6 +38,7 @@ sub Internal
     Multiple($rc);
     Entry   ($rc);
     Drop    ($rc);
+    Total   ($rc);
 }
 
 sub Creation
@@ -139,6 +140,30 @@ sub Drop
 
     my $entry = $rc->entry("a.jpg");
     ok((not defined $entry), "a.jpg dropped");
+}
+
+sub Total
+{
+    my $rc = shift;
+    my $ok;
+
+    	  $rc->update("=ybegin size=10000 part=1 name=b.jpg");
+    	  $rc->update("=ypart begin=1 end=5000");
+    	  $rc->update("=yend size=5000 part=1");
+    $ok = $rc->update("=ybegin size=10000 part=2 total=2 name=b.jpg");
+    ok($ok, "missing total");
+
+          $rc->update("=ybegin size=10000 part=1 total=2 name=c.jpg");
+          $rc->update("=ypart begin=1 end=5000");
+          $rc->update("=yend size=5000 part=1");
+    $ok = $rc->update("=ybegin size=10000 part=2 total=2 name=c.jpg");
+    ok($ok, "good total");
+
+          $rc->update("=ybegin size=10000 part=1 total=3 name=d.jpg");
+          $rc->update("=ypart begin=1 end=5000");
+          $rc->update("=yend size=5000 part=1");
+    $ok = $rc->update("=ybegin size=10000 part=2 total=2 name=d.jpg");
+    is($ok, 0, "bad total");
 }
 
 

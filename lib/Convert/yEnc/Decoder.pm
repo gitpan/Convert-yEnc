@@ -129,6 +129,7 @@ sub _body
 {
     my $decoder = shift;
     my $temp    = $decoder->{temp};
+    my $file    = $temp->{file};
     my $IN      = $temp->{IN};
     my $OUT     = $temp->{OUT};
     my $line;
@@ -140,7 +141,8 @@ sub _body
 
 	$decoder->_line($line);
 
-	print $OUT $line;
+	print $OUT $line or
+	    die "can't print to $file: $!\n";
     }
 
     close $OUT;
@@ -349,18 +351,6 @@ CRCs
 =back
 
 
-=head1 HISTORY
-
-=over 8
-
-=item 1.00
-
-Original version.
-
-=back
-
-
-
 =head1 SEE ALSO
 
 =over 4
@@ -387,6 +377,6 @@ Steven W McDougall, E<lt>swmcd@world.std.comE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (c) 2002 by Steven McDougall.
+Copyright (c) 2002-2008 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 

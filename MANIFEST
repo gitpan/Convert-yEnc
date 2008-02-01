@@ -28,3 +28,4 @@ t/utils.pl
 t/yEnc.d/ntxrc
 t/yEnc.t
 yEnc.pm
+META.yml                                 Module meta-data (added by MakeMaker)

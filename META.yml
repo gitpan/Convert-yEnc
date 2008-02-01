@@ -1,0 +1,14 @@
+--- #YAML:1.0
+name:                Convert-yEnc
+version:             1.03
+abstract:            yEnc decoder
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.32
+distribution_type:   module
+requires:     
+    Set::IntSpan:                  1.07
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Steven W McDougall <swmcd@world.std.com>

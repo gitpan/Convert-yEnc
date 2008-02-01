@@ -389,16 +389,15 @@ C<save> C<die>s if there is an error writing the file.
 =back
 
 
-=head1 HISTORY
+=head1 BUGS
 
-=over 8
+=over 4
 
-=item 1.00
+item *
 
-Original version.
+The database doesn't persist the yEnc 1.2 "total" field to disk.
 
 =back
-
 
 
 =head1 SEE ALSO

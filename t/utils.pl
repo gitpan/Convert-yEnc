@@ -46,7 +46,12 @@ sub CmpFiles
     open A, $a or die "CmpFiles: Can't open $a: $!\n";
     open B, $b or die "CmpFiles: Can't open $b: $!\n";
 
-    not <A> cmp <B>
+    my $eq = not <A> cmp <B>;
+
+    close A;
+    close B;
+
+    $eq
 }
 
 1

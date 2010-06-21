@@ -1,4 +1,4 @@
-Convert/yEnc version 1.03
+Convert/yEnc version 1.04
 ======================
 
 A yEnc decoder, with database of file parts
@@ -32,6 +32,9 @@ This module requires these other modules and libraries:
 
 
 CHANGES
+
+1.04    2010 Jun 20
+	unit test fix
 
 1.03    2008 Jan 31
 	Convert::yEnc::Decoder
@@ -93,7 +96,7 @@ John    Gilbert <jgilbert@biomail.ucsd.edu>
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2002-2008 Steven McDougall.
+Copyright (C) 2002-2010 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 

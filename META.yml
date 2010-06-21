@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Convert-yEnc
-version:             1.03
+version:             1.04
 abstract:            yEnc decoder
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.32

@@ -6,7 +6,7 @@ use Convert::yEnc::Decoder;
 use Convert::yEnc::RC;
 use warnings;
 
-our $VERSION = '1.03';
+our $VERSION = '1.04';
 
 
 sub new
@@ -193,7 +193,7 @@ I<$outDir> is the output directory,
 and I<$tmpDir> is the temporary directory,
 
 If the C<RC> parameter is omitted, 
-it defaults to F<$HOME{ENV}/.yencrc>.
+it defaults to F<$ENV{HOME}/.yencrc>.
 If the C<out> parameter is omitted, 
 it defaults to the current working directory.
 If the C<tmp> parameter is omitted, 

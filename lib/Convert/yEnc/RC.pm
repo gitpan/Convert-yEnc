@@ -155,8 +155,9 @@ sub save
 
     my $db = $rc->{db};
 
-    while (my($name, $entry) = each %$db)
+    for my $name (sort keys %$db)
     {
+	my $entry = $db->{$name};
 	print RC "$name\t$entry\n";
     }
 

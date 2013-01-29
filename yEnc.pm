@@ -6,7 +6,7 @@ use Convert::yEnc::Decoder;
 use Convert::yEnc::RC;
 use warnings;
 
-our $VERSION = '1.04';
+our $VERSION = '1.05';
 
 
 sub new

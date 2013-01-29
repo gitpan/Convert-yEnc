@@ -33,6 +33,9 @@ This module requires these other modules and libraries:
 
 CHANGES
 
+1.05    2013 Jan 29
+	unit test fix
+
 1.04    2010 Jun 20
 	unit test fix
 
@@ -96,7 +99,7 @@ John    Gilbert <jgilbert@biomail.ucsd.edu>
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2002-2010 by Steven McDougall.
+Copyright (C) 2002-2013 by Steven McDougall.
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
 

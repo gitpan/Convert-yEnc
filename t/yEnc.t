@@ -57,6 +57,7 @@ sub Decode
 
 sub Error
 {
+    $ENV{HOME} = '' unless defined $ENV{HOME};	# for Win32
     my $yEnc = new Convert::yEnc;
     my $ok   = $yEnc->decode("no_such_file");
     isnt($ok, 1, "Error: ok");

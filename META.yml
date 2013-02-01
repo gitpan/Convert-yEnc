@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Convert-yEnc
-version:            1.05
+version:            1.06
 abstract:           yEnc decoder
 author:
     - Steven W McDougall <swmcd@world.std.com>

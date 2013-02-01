@@ -84,7 +84,7 @@ sub DecodeSTDIN
     my $exp = "$NTX/testfile.exp";
 
     unlink $out;
-    system "cat $in | $Config{perlpath} $Dir/decoder.pl $Dir";
+    system "$Config{perlpath} $Dir/decoder.pl $Dir < $in";
 
     ok(CmpFiles($out, $exp), "DeocdeSTDIN: cmp $out $exp");
 }
